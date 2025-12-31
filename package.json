@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "escpos-buffer": "^4.1.0",
+    "escpos-serialport": "^3.0.0-alpha.4",
+    "express": "^5.1.0",
+    "node-thermal-printer": "^4.5.0",
+    "serialport": "^13.0.0"
+  }
+}
