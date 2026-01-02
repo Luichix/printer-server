@@ -1,4 +1,6 @@
 {
+  "name": "printer-server",
+  "type": "module",
   "dependencies": {
     "cors": "^2.8.5",
     "escpos-buffer": "^4.1.0",

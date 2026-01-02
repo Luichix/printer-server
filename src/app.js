@@ -1,8 +1,7 @@
-const express = require('express');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
 
-const printRoutes = require('./routes/print.routes');
-const scaleRoutes = require('./routes/scale.routes');
+import printRoutes from './routes/print.routes.js';
 
 const app = express();
 
@@ -10,6 +9,5 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/print', printRoutes);
-app.use('/scale', scaleRoutes);
 
-module.exports = app;
+export default app;
