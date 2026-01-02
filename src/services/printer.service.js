@@ -1,5 +1,5 @@
 // src/services/printer.service.js
-const SerialPort = require('serialport');
+const { SerialPort } = require('serialport');
 
 let printerPort = null;
 
