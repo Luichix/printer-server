@@ -1,17 +1,21 @@
-import express from 'express';
-import {
+const express = require('express');
+const {
   connectPrinter,
   printTicket,
   isPrinterOpen,
   listPorts,
-} from '../services/printer.service.js';
+} = require('../services/printer.service.js');
 
 const router = express.Router();
 
 // Ver listado de impresoras
 router.get('/list', async (_req, res) => {
-  const ports = await listPorts();
-  res.json(ports);
+  try {
+    const ports = await listPorts();
+    res.json(ports);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Seleccionar impresora
@@ -48,4 +52,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;

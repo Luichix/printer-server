@@ -1,5 +1,5 @@
 // src/services/printer.service.js
-import { SerialPort } from 'serialport';
+const SerialPort = require('serialport');
 
 let printerPort = null;
 
@@ -12,13 +12,12 @@ const OPEN_DRAWER = '\x1B\x70\x00\x19\xFA';
  * @param {string} path
  * @param {number} baudRate
  */
-export function connectPrinter(path, baudRate = 19200) {
+function connectPrinter(path, baudRate = 19200) {
   if (printerPort && printerPort.isOpen) {
     printerPort.close(); // cerrar puerto anterior si estaba abierto
   }
 
-  printerPort = new SerialPort({
-    path,
+  printerPort = new SerialPort(path, {
     baudRate,
     dataBits: 8,
     stopBits: 1,
@@ -41,7 +40,7 @@ export function connectPrinter(path, baudRate = 19200) {
  * Envía un ticket a la impresora
  * @param {string} text
  */
-export function printTicket(text) {
+function printTicket(text) {
   return new Promise((resolve, reject) => {
     if (!printerPort || !printerPort.isOpen) {
       return reject(new Error('Impresora no disponible'));
@@ -59,11 +58,14 @@ export function printTicket(text) {
 /**
  * Ver estado actual
  */
-export function isPrinterOpen() {
+function isPrinterOpen() {
   return printerPort?.isOpen ?? false;
 }
 
-export async function listPorts() {
+/**
+ * Lista los puertos seriales disponibles
+ */
+async function listPorts() {
   const ports = await SerialPort.list();
   return ports.map((p) => ({
     path: p.path,
@@ -73,3 +75,10 @@ export async function listPorts() {
     productId: p.productId,
   }));
 }
+
+module.exports = {
+  connectPrinter,
+  printTicket,
+  isPrinterOpen,
+  listPorts,
+};
