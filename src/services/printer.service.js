@@ -13,11 +13,12 @@ const OPEN_DRAWER = '\x1B\x70\x00\x19\xFA';
  * @param {number} baudRate
  */
 function connectPrinter(path, baudRate = 19200) {
-  if (printerPort && printerPort.isOpen) {
-    printerPort.close(); // cerrar puerto anterior si estaba abierto
+  if (printerPort?.isOpen) {
+    printerPort.close();
   }
 
-  printerPort = new SerialPort(path, {
+  printerPort = new SerialPort({
+    path,
     baudRate,
     dataBits: 8,
     stopBits: 1,
