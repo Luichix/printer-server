@@ -96,3 +96,5 @@ Con esto puedes probar tu impresora completamente sin frontend.
 ```
 
 ```
+
+[{"path":"COM4","manufacturer":"Microsoft","serialNumber":"5&15F15702&0&2","vendorId":"1FC9","productId":"2014"}]

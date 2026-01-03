@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Impresoras</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --primary: #2563eb;
+        --success: #16a34a;
+        --border: #e5e7eb;
+        --radius: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 2rem;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease,
+          transform 0.15s ease;
+      }
+
+      .card:hover {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+      }
+
+      .card.selected {
+        border-color: var(--success);
+        box-shadow: 0 0 0 1px var(--success);
+      }
+
+      .printer-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        word-break: break-all;
+      }
+
+      .printer-meta {
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      button {
+        flex: 1;
+        padding: 0.45rem 0.6rem;
+        border-radius: 6px;
+        border: none;
+        font-size: 0.85rem;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s ease, transform 0.1s ease;
+      }
+
+      button:active {
+        transform: scale(0.97);
+      }
+
+      button.select {
+        background: var(--primary);
+        color: white;
+      }
+
+      button.select:hover {
+        background: #1d4ed8;
+      }
+
+      button.test {
+        background: var(--success);
+        color: white;
+      }
+
+      button.test:hover {
+        background: #15803d;
+      }
+
+      .empty,
+      .error {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 2rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Impresoras disponibles</h1>
+    <div class="subtitle">
+      Selecciona una impresora y realiza una prueba de impresión
+    </div>
+
+    <div class="cards" id="printer-cards">Cargando...</div>
+
+    <script>
+      let selectedPrinter = null;
+
+      async function loadPrinters() {
+        try {
+          const res = await fetch('/print/list');
+          const printers = await res.json();
+          const container = document.getElementById('printer-cards');
+
+          if (!printers.length) {
+            container.innerHTML =
+              '<div class="empty">No se encontraron impresoras</div>';
+            return;
+          }
+
+          container.innerHTML = printers
+            .map(
+              (p) => `
+              <div class="card" data-path="${p.path}">
+                <div class="printer-name">${p.path}</div>
+                <div class="printer-meta">
+                  <div>${p.manufacturer || 'Fabricante desconocido'}</div>
+                  <div>Serial: ${p.serialNumber || '-'}</div>
+                </div>
+                <div class="actions">
+                  <button class="select">Seleccionar</button>
+                  <button class="test">Probar</button>
+                </div>
+              </div>
+            `
+            )
+            .join('');
+
+          document.querySelectorAll('.card .select').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+              const card = e.target.closest('.card');
+              await selectPrinter(card.dataset.path);
+
+              document
+                .querySelectorAll('.card')
+                .forEach((c) => c.classList.remove('selected'));
+
+              card.classList.add('selected');
+              selectedPrinter = card.dataset.path;
+            });
+          });
+
+          document.querySelectorAll('.card .test').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+              const card = e.target.closest('.card');
+              await testPrinter(card.dataset.path);
+            });
+          });
+        } catch (err) {
+          document.getElementById(
+            'printer-cards'
+          ).innerHTML = `<div class="error">Error cargando impresoras: ${err.message}</div>`;
+        }
+      }
+
+      async function selectPrinter(path) {
+        try {
+          await fetch('/print/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path, baudRate: 19200 }),
+          });
+          alert(`Impresora ${path} seleccionada`);
+        } catch (err) {
+          alert('Error al seleccionar impresora: ' + err.message);
+        }
+      }
+
+      async function testPrinter(path) {
+        try {
+          const res = await fetch('/print', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: 'Ticket de prueba\nGracias!' }),
+          });
+          if (res.ok) alert('Ticket de prueba enviado');
+          else alert('Error enviando ticket');
+        } catch (err) {
+          alert('Error en test: ' + err.message);
+        }
+      }
+
+      loadPrinters();
+    </script>
+  </body>
+</html>
