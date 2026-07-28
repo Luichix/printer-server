@@ -47,7 +47,7 @@ export function printTicket(text) {
       return reject(new Error('Impresora no disponible'));
     }
 
-    const ticket = `${text}\n\n${CUT}${OPEN_DRAWER}`;
+    const ticket = `${OPEN_DRAWER}${text}\n\n${CUT}`;
 
     printerPort.write(ticket, (err) => {
       if (err) return reject(err);
