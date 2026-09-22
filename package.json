@@ -1,24 +1,23 @@
 {
   "name": "printer-server",
   "version": "1.0.0",
-  "bin": "entry.cjs",
-  "pkg": {
-    "targets": [
-      "node18-win-x64"
-    ],
-    "assets": [
-      "src/**/*",
-      "node_modules/@serialport/bindings-cpp/prebuilds/**/*"
-    ],
-    "outputPath": "dist"
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "preinstall": "node scripts/require-pnpm.cjs",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js && node --check public/app.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "escpos-buffer": "^4.1.0",
-    "escpos-serialport": "^3.0.0-alpha.4",
-    "express": "^4.19.2",
-    "node-thermal-printer": "^4.5.0",
-    "open": "^8.4.2",
-    "serialport": "^12.0.0"
+    "cors": "2.8.5",
+    "express": "^4.21.2",
+    "open": "8.4.2",
+    "serialport": "12.0.0"
   }
 }

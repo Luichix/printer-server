@@ -1,100 +1,50 @@
-# Servidor de Prueba de Impresora
+# Puente local de impresión
 
-Este proyecto permite probar una impresora térmica conectada vía puerto serial.  
-Se puede listar los puertos, seleccionar la impresora y enviar tickets de prueba sin necesidad de un frontend.
+Aplicación local para que sistemas web de ventas e inventario puedan enviar
+impresiones al equipo del usuario. El prototipo actual admite puertos COM y
+tickets de texto ESC/POS en Windows.
 
----
+## Empezar
 
-## 1. Iniciar el servidor
-
-Ejecuta el servidor Node.js:
-
-```powershell
-node .\src\server.js
-```
-
-Por defecto escuchará en `http://localhost:4000`.
-
----
-
-## 2. Comandos para probar la impresora
-
-### a) Listar los puertos seriales disponibles
+Usar Node con **nvm-windows** (versión en `.nvmrc`) y **pnpm 11.19.0**.
+Consulta [la guía de Windows](docs/WINDOWS.md) para preparar el entorno,
+probar una impresora y autorizar tus aplicaciones web.
 
 ```powershell
-curl -X GET http://localhost:4000/print/list
+pnpm install --frozen-lockfile
+pnpm test
+pnpm start
 ```
 
-Esto devuelve un listado de todos los puertos disponibles, por ejemplo:
+Interfaz local: http://127.0.0.1:4000.
 
-```json
-[
-  { "path": "COM3", "manufacturer": "USB Printer", "serialNumber": "1234" },
-  { "path": "COM4", "manufacturer": "USB Printer", "serialNumber": "5678" }
-]
+## Estructura
+
+```text
+src/
+  app.js                    Configuración HTTP y acceso local
+  server.js                 Inicio y cierre del proceso
+  routes/print.routes.js    Contrato y validación de la API
+  services/printer.service.js Conexión serial y cola de envíos
+public/                     Interfaz HTML, CSS y JavaScript
+scripts/                    Herramientas del proyecto
+test/                       Pruebas de API y transporte simulado
+docs/                       Guía de Windows y siguientes etapas
+dist/                       Artefactos generados (ejecutable histórico)
 ```
 
----
+No se añaden capas vacías para funciones futuras. El servicio de impresión
+está separado de HTTP para poder incorporar otros transportes posteriormente.
 
-### b) Seleccionar la impresora
+## Estado y límites
 
-Conecta la impresora al puerto deseado (por ejemplo `COM4`):
+- Conexión serial confirmada solo después de abrir el puerto.
+- Envíos y cambios de conexión serializados; comandos ESC/POS binarios.
+- Gaveta desactivada por defecto; respuesta `sent` indica envío, no papel impreso.
+- Acceso limitado a loopback y orígenes web autorizados explícitamente.
+- Pruebas automatizadas con transporte simulado; no sustituyen la prueba física.
+- Pendientes: autenticación/emparejamiento, aislamiento por tenant, etiquetas,
+  spooler de Windows, transportes de red, ejecutable actualizado e instalador.
 
-```powershell
-curl -X POST http://localhost:4000/print/select `
-  -H "Content-Type: application/json" `
-  -d '{ "path": "COM4", "baudRate": 19200 }'
-```
-
-- `path`: el puerto que quieres usar (`COM?` según lo que listaste)
-- `baudRate`: la velocidad del puerto (por defecto 19200)
-
-✅ Respuesta esperada:
-
-```json
-{ "status": "connected", "path": "COM4" }
-```
-
----
-
-### c) Imprimir un ticket de prueba
-
-Envía un texto a la impresora seleccionada:
-
-```powershell
-curl -X POST http://localhost:4000/print `
-  -H "Content-Type: application/json" `
-  -d '{ "text": "Hola Queso!\nPrecio: $150" }'
-```
-
-✅ Respuesta esperada:
-
-```json
-{ "status": "printed" }
-```
-
-> El ticket incluirá un corte y apertura de gaveta automática (ESC/POS).
-
----
-
-## ⚡ Notas
-
-- Asegúrate de **seleccionar primero la impresora** antes de enviar un ticket.
-- Si no hay impresora conectada o el puerto está ocupado, recibirás un error `503 - Impresora no disponible`.
-- Los comandos `curl` son compatibles con PowerShell y también funcionan en Linux/macOS.
-
----
-
-## 📌 Flujo recomendado
-
-1. Listar puertos: `GET /print/list`
-2. Seleccionar puerto: `POST /print/select`
-3. Imprimir ticket: `POST /print`
-
-Con esto puedes probar tu impresora completamente sin frontend.
-
-```
-
-```
-
-[{"path":"COM4","manufacturer":"Microsoft","serialNumber":"5&15F15702&0&2","vendorId":"1FC9","productId":"2014"}]
+El ejecutable antiguo en `dist/` no contiene los cambios actuales. Primero se
+validará el hardware y después se definirá y comprobará el empaquetado.

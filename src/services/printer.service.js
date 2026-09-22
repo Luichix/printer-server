@@ -1,85 +1,47 @@
-// src/services/printer.service.js
 const { SerialPort } = require('serialport');
 
-let printerPort = null;
-
-// ESC/POS
-const CUT = '\x1DVA0';
-const OPEN_DRAWER = '\x1B\x70\x00\x19\xFA';
-
-/**
- * Conecta la impresora al puerto especificado
- * @param {string} path
- * @param {number} baudRate
- */
-function connectPrinter(path, baudRate = 19200) {
-  if (printerPort?.isOpen) {
-    printerPort.close();
+function createPrinterService(Port = SerialPort) {
+  let port = null;
+  let queue = Promise.resolve();
+  // Serializar conexión e impresión para no cambiar de puerto durante un envío.
+  function enqueue(action) {
+    const result = queue.then(action);
+    queue = result.catch(() => {});
+    return result;
   }
-
-  printerPort = new SerialPort({
-    path,
-    baudRate,
-    dataBits: 8,
-    stopBits: 1,
-    parity: 'none',
-    autoOpen: true,
+  const call = (target, method, ...args) => new Promise((resolve, reject) => {
+    target[method](...args, error => error ? reject(error) : resolve());
   });
-
-  printerPort.on('open', () => {
-    console.log(`✅ Impresora conectada en ${path}`);
-  });
-
-  printerPort.on('error', (err) => {
-    console.error('❌ Error en la impresora:', err.message);
-  });
-
-  return printerPort;
+  return {
+    isPrinterOpen: () => port?.isOpen ?? false,
+    connectPrinter: (path, baudRate = 19200) => enqueue(async () => {
+      if (port?.isOpen) await call(port, 'close');
+      port = null;
+      const candidate = new Port({ path, baudRate, dataBits: 8, stopBits: 1, parity: 'none', autoOpen: false });
+      candidate.on('error', error => console.error('Error de impresora:', error.message));
+      await call(candidate, 'open');
+      port = candidate;
+    }),
+    printTicket: (text, { openDrawer = false, cut = true, path } = {}) => enqueue(async () => {
+      if (!port?.isOpen) throw new Error('Impresora no disponible');
+      if (path && port.path !== path) throw new Error('La impresora seleccionada cambió');
+      // Comandos binarios: UTF-8 convertiría 0xFA en dos bytes.
+      const payload = Buffer.concat([
+        Buffer.from(text + '\n\n', 'utf8'),
+        cut ? Buffer.from([0x1d, 0x56, 0x41, 0]) : Buffer.alloc(0),
+        openDrawer ? Buffer.from([0x1b, 0x70, 0, 0x19, 0xfa]) : Buffer.alloc(0),
+      ]);
+      await call(port, 'write', payload);
+      await call(port, 'drain');
+    }),
+    close: () => enqueue(async () => {
+      if (port?.isOpen) await call(port, 'close');
+      port = null;
+    }),
+    listPorts: async () => (await Port.list()).map(({ path, manufacturer, serialNumber, vendorId, productId }) => ({
+      path, manufacturer, serialNumber, vendorId, productId,
+    })),
+  };
 }
+module.exports = { ...createPrinterService(), createPrinterService };
 
-/**
- * Envía un ticket a la impresora
- * @param {string} text
- */
-function printTicket(text) {
-  return new Promise((resolve, reject) => {
-    if (!printerPort || !printerPort.isOpen) {
-      return reject(new Error('Impresora no disponible'));
-    }
-
-    const ticket = `${text}\n\n${CUT}${OPEN_DRAWER}`;
-
-    printerPort.write(ticket, (err) => {
-      if (err) return reject(err);
-      resolve();
-    });
-  });
-}
-
-/**
- * Ver estado actual
- */
-function isPrinterOpen() {
-  return printerPort?.isOpen ?? false;
-}
-
-/**
- * Lista los puertos seriales disponibles
- */
-async function listPorts() {
-  const ports = await SerialPort.list();
-  return ports.map((p) => ({
-    path: p.path,
-    manufacturer: p.manufacturer,
-    serialNumber: p.serialNumber,
-    vendorId: p.vendorId,
-    productId: p.productId,
-  }));
-}
-
-module.exports = {
-  connectPrinter,
-  printTicket,
-  isPrinterOpen,
-  listPorts,
-};
