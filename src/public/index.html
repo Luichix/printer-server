@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Impresoras · Agente local</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main>
+<header><div><p class="eyebrow">AGENTE LOCAL</p><h1>Tus impresoras, listas para trabajar</h1><p>Configura las impresoras de este equipo y comprueba sus conexiones.</p></div><span id="connection" role="status">Conectando…</span></header>
+<p id="notice" role="status" aria-live="polite"></p>
+<section><h2>Agregar o editar impresora</h2><p>Esta versión admite puertos seriales. Las impresoras USB deben aparecer como puerto serial en el sistema.</p>
+<form id="printer-form"><input type="hidden" name="id"><div class="fields">
+<label>Nombre<input name="name" required maxlength="100" placeholder="Tickets · Caja 1"></label>
+<label>Puerto<select name="path" id="ports" required><option value="">Buscando puertos…</option></select></label>
+<label>Velocidad<select name="baudRate"><option>9600</option><option selected>19200</option><option>38400</option><option>57600</option><option>115200</option></select></label>
+<label>Codificación<select name="encoding"><option value="utf8">UTF-8</option><option value="ascii">ASCII</option><option value="latin1">Latin-1</option></select></label>
+</div><p class="hint">La codificación debe coincidir con la impresora. Comprueba las tildes con una impresión de prueba.</p>
+<label class="check"><input type="checkbox" name="cut" checked>Cortar el papel al terminar (ESC/POS)</label>
+<div class="actions"><button type="submit">Guardar y conectar</button><button type="button" id="refresh-ports" class="secondary">Buscar puertos</button><button type="button" id="cancel-edit" class="secondary" hidden>Cancelar edición</button></div></form></section>
+<section><h2>Impresoras guardadas</h2><div id="printers">Cargando…</div></section>
+<section><h2>Probar impresión</h2><form id="test-form"><label>Impresora<select id="test-printer" required></select></label><label>Texto del ticket<textarea id="test-text" rows="4" maxlength="16000" required>PRUEBA DE IMPRESIÓN
+Producto de prueba       100.00
+Gracias por su compra</textarea></label><label class="check"><input id="drawer" type="checkbox">Abrir también la gaveta</label><p class="hint">La gaveta permanece cerrada salvo que lo indiques. Comprueba físicamente que salió el ticket.</p><button type="submit">Imprimir prueba</button></form></section>
+<section><h2>Actividad reciente</h2><p>“Enviado” indica que los datos se entregaron al puerto; no confirma que haya salido el papel. Si el resultado es incierto, revisa la impresora antes de volver a imprimir.</p><div id="jobs"></div></section>
+<section><h2>Conectar una aplicación web</h2><p>Autoriza aquí la dirección exacta de la aplicación, incluyendo https:// y sin barra final. La aplicación debe enviar la credencial local en cada solicitud. La vinculación por negocio se añadirá en la siguiente etapa.</p><p id="origins"></p><form id="origins-form"><label>Aplicaciones autorizadas (una por línea)<textarea id="allowed-origins" rows="3" placeholder="https://pos.ejemplo.com"></textarea></label><button type="submit">Guardar aplicaciones</button></form><button id="show-token" class="secondary">Mostrar credencial de integración</button><div id="credential" hidden><p>Comparte esta credencial solo con aplicaciones de confianza. Permite administrar e imprimir en este equipo.</p><input id="token" readonly aria-label="Credencial local"></div></section>
+</main></body></html>

@@ -1,51 +1,18 @@
 import express from 'express';
-import {
-  connectPrinter,
-  printTicket,
-  isPrinterOpen,
-  listPorts,
-} from '../services/printer.service.js';
 
-const router = express.Router();
-
-// Ver listado de impresoras
-router.get('/list', async (_req, res) => {
-  const ports = await listPorts();
-  res.json(ports);
-});
-
-// Seleccionar impresora
-router.post('/select', (req, res) => {
-  const { path, baudRate } = req.body;
-
-  if (!path) {
-    return res.status(400).json({ error: 'Puerto requerido' });
-  }
-
-  try {
-    connectPrinter(path, baudRate);
-    res.json({ status: 'connected', path });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Imprimir ticket
-router.post('/', async (req, res) => {
-  const { text } = req.body;
-
-  if (!text) return res.status(400).json({ error: 'Texto requerido' });
-
-  if (!isPrinterOpen()) {
-    return res.status(503).json({ error: 'Impresora no disponible' });
-  }
-
-  try {
-    await printTicket(text);
-    res.json({ status: 'printed' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-export default router;
+export function createPrintRoutes(manager) {
+  const router = express.Router();
+  router.get('/list', async (_req, res) => res.json(await manager.listPorts()));
+  router.post('/select', async (req, res) => {
+    const { path, baudRate } = req.body || {};
+    const existing = manager.store.state.printers.find(printer => printer.path === path);
+    const printer = await manager.configure({ ...existing, path, baudRate: baudRate ?? existing?.baudRate ?? 19200, name: existing?.name || 'Impresora POS' });
+    manager.setDefault(printer.id);
+    res.json({ status: 'connected', path: printer.path, printerId: printer.id });
+  });
+  router.post('/', async (req, res) => {
+    const job = await manager.submit(req.body || {}, { wait: true });
+    res.status(job.status === 'sent' ? 200 : 503).json({ ...job, jobId: job.id });
+  });
+  return router;
+}

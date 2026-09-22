@@ -1,6 +1,7 @@
 {
   "name": "printer-server",
   "type": "module",
+  "bin": "src/server.js",
   "dependencies": {
     "cors": "^2.8.5",
     "escpos-buffer": "^4.1.0",
@@ -8,5 +9,17 @@
     "express": "^5.1.0",
     "node-thermal-printer": "^4.5.0",
     "serialport": "^13.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "build:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows.ps1",
+    "build:windows:portable": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows.ps1 -PortableOnly"
+  },
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agente local de impresion para aplicaciones POS",
+  "engines": {
+    "node": ">=22 <23"
   }
 }
