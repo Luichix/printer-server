@@ -14,6 +14,7 @@ function createPrinterService(Port = SerialPort) {
   });
   return {
     isPrinterOpen: () => port?.isOpen ?? false,
+    getConnection: () => port?.isOpen ? { path: port.path, baudRate: port.baudRate } : null,
     connectPrinter: (path, baudRate = 19200) => enqueue(async () => {
       if (port?.isOpen) await call(port, 'close');
       port = null;
@@ -44,4 +45,5 @@ function createPrinterService(Port = SerialPort) {
   };
 }
 module.exports = { ...createPrinterService(), createPrinterService };
+
 

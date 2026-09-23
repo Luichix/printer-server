@@ -48,3 +48,5 @@ está separado de HTTP para poder incorporar otros transportes posteriormente.
 
 El ejecutable antiguo en `dist/` no contiene los cambios actuales. Primero se
 validará el hardware y después se definirá y comprobará el empaquetado.
+
+Aplicación de escritorio: consulta [bandeja, configuración y compilación](docs/DESKTOP.md). Código preparado; pendiente de validación manual y nueva compilación.

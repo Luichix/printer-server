@@ -1,5 +1,5 @@
 const express = require('express');
-module.exports = function createPrintRoutes(printer) {
+module.exports = function createPrintRoutes(printer, onPrinterConnected = () => {}) {
   const router = express.Router();
   router.get('/list', async (_req, res, next) => {
     try { res.json(await printer.listPorts()); } catch (error) { next(error); }
@@ -12,7 +12,14 @@ module.exports = function createPrintRoutes(printer) {
     }
     try {
       await printer.connectPrinter(path, baudRate);
-      res.json({ status: 'connected', path });
+      let warning;
+      try { await onPrinterConnected({ path, baudRate }); }
+      catch (error) {
+        warning = 'Conectada, pero no se pudo guardar la configuración. Revisa config.json y los registros.';
+        console.error('No se pudo guardar la impresora:', error.message);
+      }
+      console.log('Impresora conectada:', path, baudRate);
+      res.json({ status: 'connected', path, warning });
     } catch (error) { next(error); }
   });
   router.post('/', async (req, res, next) => {
@@ -27,9 +34,10 @@ module.exports = function createPrintRoutes(printer) {
     if (!printer.isPrinterOpen()) return res.status(503).json({ error: 'Impresora no disponible' });
     try {
       await printer.printTicket(text, { cut, openDrawer, path });
-      res.json({ status: 'sent' });
+      console.log('Trabajo enviado a la impresora'); res.json({ status: 'sent' });
     } catch (error) { next(error); }
   });
   return router;
 };
+
 
