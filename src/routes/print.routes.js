@@ -5,6 +5,7 @@ module.exports = function createPrintRoutes(
   onPrinterConnected = () => {},
 ) {
   const router = express.Router();
+  router.get('/jobs', (_req, res) => res.json(printer.listJobs()));
   router.get('/list', async (_req, res, next) => {
     try {
       res.json(await printer.listPorts());
@@ -41,9 +42,10 @@ module.exports = function createPrintRoutes(
       next(error);
     }
   });
-  router.post('/', async (req, res, next) => {
-    const { text, cut, openDrawer, path } = req.body || {};
+  const handlePrint = localPanel => async (req, res, next) => {
+    const { text, cut, openDrawer, path, jobId } = req.body || {};
     if (
+      (jobId !== undefined && (typeof jobId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(jobId))) ||
       (cut !== undefined && typeof cut !== 'boolean') ||
       (openDrawer !== undefined && typeof openDrawer !== 'boolean') ||
       (path !== undefined &&
@@ -54,21 +56,25 @@ module.exports = function createPrintRoutes(
           'Opciones inválidas: cut y openDrawer deben ser booleanos; path debe ser un puerto COM',
       });
     }
+    if (localPanel && (typeof text !== 'string' || text.length > 4000 || text.replace(/\r\n?/g, '\n').split('\n').length > 4 || /[\x00-\x08\x0b-\x1f\x7f]/.test(text))) {
+      return res.status(400).json({ error: 'La impresión local admite hasta 4 líneas y 4000 caracteres, sin comandos.' });
+    }
     let ticket;
     try {
       ticket = prepareTicket(text);
     } catch (error) {
       return next(error);
     }
-    if (!printer.isPrinterOpen())
-      return res.status(503).json({ error: 'Impresora no disponible' });
     try {
-      await printer.printTicket(ticket, { cut, openDrawer, path });
+      const job = await printer.printTicket(ticket, { cut: localPanel ? false : cut, openDrawer: localPanel ? false : openDrawer, path, jobId, localPanel, scope: localPanel ? 'panel' : (req.headers.origin || 'local') });
+      if (job && job.status !== 'sent') return res.status(503).json({ status: job.status, jobId: job.id, error: job.error || 'Trabajo no enviado' });
       console.log('Trabajo enviado a la impresora');
-      res.json({ status: 'sent' });
+      res.json({ status: 'sent', ...(job ? { jobId: job.id } : {}) });
     } catch (error) {
       next(error);
     }
-  });
+  };
+  router.post('/local', handlePrint(true));
+  router.post('/', handlePrint(false));
   return router;
 };

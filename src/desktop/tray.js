@@ -14,6 +14,7 @@ function showError(message) {
 }
 function startTray(directory, onAction, onExit) {
   const scriptPath = path.join(directory, 'tray.ps1');
+  fs.writeFileSync(path.join(directory, 'printer-server.ico'), fs.readFileSync(path.join(__dirname, '../../assets/printer-server.ico')));
   fs.writeFileSync(scriptPath, fs.readFileSync(path.join(__dirname, 'tray.ps1')));
   return new Promise((resolve, reject) => {
     const child = spawn(powershell, ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-OwnerPid', String(process.pid)], {

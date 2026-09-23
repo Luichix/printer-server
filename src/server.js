@@ -98,7 +98,9 @@ async function main() {
             .filter(Boolean)
         : config.allowedOrigins,
   });
-  printer = require('./services/printer.service');
+  printer = require('./services/printer.service').createPrinterService(undefined, {
+    store: require('./services/job-store').createJobStore(settings.dataDirectory),
+  });
   const { createApp } = require('./app');
   url = 'http://localhost:' + effective.port;
   server = createApp({

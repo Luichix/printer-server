@@ -23,6 +23,7 @@ OutputBaseFilename=PrinterServer-{#AppVersion}-windows-x64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile={#ProjectRoot}\assets\printer-server.ico
 UninstallDisplayIcon={app}\printer-server.exe
 CloseApplications=no
 RestartApplications=no

@@ -42,8 +42,9 @@ test('espera apertura, envía bytes correctos y espera drain', async () => {
   assert.deepEqual(
     port.data,
     Buffer.concat([
+      Buffer.from([27, 112, 0, 25, 250]),
       Buffer.from('Hola\n\n'),
-      Buffer.from([29, 86, 65, 0, 27, 112, 0, 25, 250]),
+      Buffer.from([29, 86, 65, 0]),
     ]),
   );
   assert.equal(port.drained, true);
@@ -78,11 +79,26 @@ test('propaga fallos de escritura y drenaje sin bloquear próximos envíos', asy
   await printer.connectPrinter('COM4');
   const port = Port.instances.at(-1);
   port.write = (_data, cb) => cb(new Error('Desconectada'));
-  await assert.rejects(printer.printTicket('Ticket'), /Desconectada/);
+  assert.equal((await printer.printTicket('Ticket')).status, 'uncertain');
+  await printer.connectPrinter('COM4');
+  const nextPort = Port.instances.at(-1);
   port.write = Port.prototype.write;
-  port.drain = (cb) => cb(new Error('Fallo al drenar'));
-  await assert.rejects(printer.printTicket('Ticket'), /drenar/);
+  nextPort.drain = (cb) => cb(new Error('Fallo al drenar'));
+  assert.equal((await printer.printTicket('Ticket')).status, 'uncertain');
+  await printer.connectPrinter('COM4');
   port.drain = Port.prototype.drain;
   await printer.printTicket('Recuperado');
+  await printer.close();
+});
+
+test('historial visible conserva solo contenido local y permite nuevas copias', async () => {
+  const printer = createPrinterService(Port);
+  await printer.connectPrinter('COM4');
+  await printer.printTicket('Venta privada', { jobId: 'venta', scope: 'https://ventas.example' });
+  await printer.printTicket('Etiqueta', { jobId: 'etiqueta', localPanel: true, scope: 'panel', cut: false });
+  assert.deepEqual(printer.listJobs().map(job => job.text), ['Etiqueta']);
+  await printer.printTicket('Etiqueta', { jobId: 'copia', localPanel: true, scope: 'panel', cut: false });
+  assert.equal(printer.listJobs().length, 2);
+  assert.equal(Port.instances.at(-1).data.includes(Buffer.from([29, 86])), false);
   await printer.close();
 });

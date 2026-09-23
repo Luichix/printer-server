@@ -3,7 +3,6 @@ const container = byId('printer-cards');
 let selectedPrinter = null;
 let busy = false;
 let online = false;
-const history = [];
 const normalize = text => text.replace(/\r\n?/g, '\n');
 const editor = () => byId('multiline').checked ? byId('print-textarea') : byId('print-input');
 const currentText = () => normalize(editor().value);
@@ -67,6 +66,8 @@ function updateControls() {
     select.setAttribute('aria-pressed', String(active));
     select.disabled = busy || active || !online;
   });
+  document.querySelectorAll('.reprint-button').forEach(button => { button.disabled = busy || !selectedPrinter || !online; });
+  byId('refresh-jobs').disabled = busy;
   byId('refresh').disabled = busy;
   byId('reconnect').disabled = busy || !selectedPrinter || !online;
   byId('baud-rate').disabled = busy;
@@ -112,6 +113,7 @@ function emptyState(title, description) {
 async function connect(path) {
   const baudRate = Number(byId('baud-rate').value);
   if (!Number.isInteger(baudRate) || baudRate < 1 || baudRate > 4000000) {
+    showView('settings');
     byId('baud-rate').closest('details').open = true;
     throw new Error('Introduce una velocidad válida en Ajustes de conexión.');
   }
@@ -120,28 +122,8 @@ async function connect(path) {
   message('Conectando con ' + path + '…');
   const result = await request('/print/select', { path, baudRate });
   selectedPrinter = path;
+
   message(result.warning || 'Impresora ' + path + ' seleccionada.', result.warning ? 'error' : 'success');
-}
-function addHistory(path, text) {
-  history.unshift({ path, text, date: new Date() });
-  if (history.length > 30) history.pop();
-  byId('print-history').replaceChildren();
-  for (const entry of history) {
-    const row = document.createElement('li');
-    const meta = document.createElement('div');
-    meta.className = 'history-meta';
-    const destination = document.createElement('strong');
-    destination.textContent = entry.path + ' · Enviado';
-    const time = document.createElement('time');
-    time.dateTime = entry.date.toISOString();
-    time.textContent = entry.date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const content = document.createElement('pre');
-    content.className = 'history-text';
-    content.textContent = entry.text;
-    meta.append(destination, time);
-    row.append(meta, content);
-    byId('print-history').append(row);
-  }
 }
 async function printText(text) {
   const error = validate(text);
@@ -149,9 +131,10 @@ async function printText(text) {
   if (!selectedPrinter) throw new Error('Selecciona una impresora primero.');
   const path = selectedPrinter;
   message('Enviando a ' + path + '…');
-  try { await request('/print', { path, text, cut: false, openDrawer: false }); }
+  const jobId = crypto.randomUUID();
+  try { await request('/print/local', { path, text, cut: false, openDrawer: false, jobId }); }
   catch (error) { selectedPrinter = null; throw error; }
-  addHistory(path, text);
+  await loadJobs().catch(() => {});
   message('Texto enviado a ' + path + '.', 'success');
 }
 async function loadPrinters() {
@@ -203,7 +186,7 @@ async function loadPrinters() {
     throw error;
   }
 }
-byId('refresh').addEventListener('click', () => action(loadPrinters));
+byId('refresh').addEventListener('click', () => action(async () => { await loadPrinters(); await loadJobs(); }));
 byId('reconnect').addEventListener('click', () => action(async () => { if (selectedPrinter) await connect(selectedPrinter); }));
 byId('multiline').addEventListener('change', () => {
   const multiline = byId('multiline').checked;
@@ -241,5 +224,36 @@ byId('paste-print').addEventListener('click', () => action(async () => {
   setEditorText(text);
   await printText(text);
 }));
-action(loadPrinters);
+async function loadJobs() {
+  const jobs = await request('/print/jobs');
+  const labels = { queued: 'Pendiente', sending: 'Enviando', sent: 'Enviado', failed: 'Fallido', uncertain: 'Resultado incierto: revisa el papel antes de reimprimir' };
+  byId('print-history').replaceChildren();
+  if (!jobs.length) { const empty = document.createElement('li'); empty.textContent = 'Aún no hay trabajos registrados.'; byId('print-history').append(empty); }
+  for (const job of jobs) {
+    const row = document.createElement('li');
+    row.textContent = job.path + ' · ' + (labels[job.status] || job.status) + ' · ' + new Date(job.createdAt).toLocaleString('es') + ' · ' + job.id;
+    if (typeof job.text === 'string') {
+      const content = document.createElement('pre'); content.className = 'history-text';
+      content.textContent = job.text; row.append(content);
+      if (job.status === 'sent') {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'button button-secondary reprint-button';
+        button.textContent = 'Reimprimir';
+        button.addEventListener('click', () => action(() => printText(job.text)));
+        row.append(button);
+      }
+    }
+    byId('print-history').append(row);
+  }
+}
+function showView(view) {
+  byId('printing-view').hidden = view !== 'print';
+  byId('settings-view').hidden = view !== 'settings';
+  byId('show-print').setAttribute('aria-pressed', String(view === 'print'));
+  byId('show-settings').setAttribute('aria-pressed', String(view === 'settings'));
+}
+byId('show-print').addEventListener('click', () => showView('print'));
+byId('show-settings').addEventListener('click', () => showView('settings'));
+byId('refresh-jobs').addEventListener('click', () => action(loadJobs));
+action(async () => { await loadPrinters(); await loadJobs(); });
 

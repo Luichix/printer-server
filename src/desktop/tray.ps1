@@ -5,7 +5,8 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $context = New-Object System.Windows.Forms.ApplicationContext
 $tray = New-Object System.Windows.Forms.NotifyIcon
-$tray.Icon = [System.Drawing.SystemIcons]::Application
+$appIcon = [System.Drawing.Icon]::new((Join-Path $PSScriptRoot 'printer-server.ico'), 32, 32)
+$tray.Icon = $appIcon
 $tray.Text = 'Printer Server - servicio local activo'
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 function Send-Action([string]$action) {
@@ -41,6 +42,7 @@ try {
   $timer.Dispose()
   $tray.Visible = $false
   $tray.Dispose()
+  $appIcon.Dispose()
   $menu.Dispose()
   $context.Dispose()
 }

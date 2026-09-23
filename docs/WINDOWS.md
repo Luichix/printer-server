@@ -137,3 +137,13 @@ incluirse en un iframe. Estas restricciones protegen frente a sitios externos en
 navegadores; no autentican software local capaz de falsificar encabezados HTTP.
 
 Se actualizaron los casos de prueba de acceso; no se ejecutaron en esta entrega.
+
+## Icono de Windows
+
+El icono propio está en `assets/printer-server.ico`, con resoluciones de 16 a 256 píxeles. El SVG editable y una vista PNG están en esa misma carpeta. `node scripts/create-icon.cjs` regenera los tres archivos a partir del diseño definido en el script.
+
+`pnpm build:exe` personaliza una copia del binario base de Node con resedit antes de empaquetar, para que pkg calcule correctamente las posiciones de sus datos. No modifica la caché compartida. Requiere Windows x64 y no permite un PKG_NODE_PATH externo. La personalización precede a cualquier firma digital.
+
+El instalador usa el mismo icono y los accesos directos lo toman del ejecutable. Al iniciar la bandeja, la aplicación extrae su icono a la carpeta local de datos junto a tray.ps1. No es necesario distribuir un ICO separado en el portable.
+
+Para ver el cambio en una instalación existente, cierra Printer Server desde la bandeja, recompila y abre/instala la nueva versión. Cerrar únicamente la ventana del navegador no reinicia la bandeja. Windows puede conservar temporalmente el icono anterior en su caché.

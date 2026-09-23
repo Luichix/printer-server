@@ -36,7 +36,7 @@ function createApp({
   });
   // Mismo enrutamiento que Express: cubre OPTIONS, mayúsculas y barra final.
   // Se verifica antes de CORS y de cualquier acceso a las impresoras.
-  app.use(['/print/list', '/print/select', '/settings'], requireLocalPanel);
+  app.use(['/print/list', '/print/select', '/print/local', '/print/jobs', '/settings'], requireLocalPanel);
   app.use((_req, res, next) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
@@ -77,7 +77,7 @@ function createApp({
   );
   app.use((error, _req, res, _next) => {
     const status =
-      error.status >= 400 && error.status < 500 ? error.status : 500;
+      error.status >= 400 && error.status < 600 ? error.status : 500;
     console.error(
       'Solicitud fallida:',
       status,

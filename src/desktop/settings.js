@@ -19,6 +19,7 @@ function validate(value) {
       !Number.isInteger(config.printer.baudRate) || config.printer.baudRate < 1 || config.printer.baudRate > 4000000)) {
     throw new Error('Configuración de impresora inválida');
   }
+  delete config.printerProfiles; // Retirar perfiles antiguos: las acciones vienen en cada solicitud.
   return config;
 }
 function save(config) {
