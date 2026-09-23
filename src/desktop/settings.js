@@ -35,5 +35,9 @@ function rememberPrinter(printer) {
   // Leer de nuevo para conservar las ediciones manuales del usuario.
   save({ ...load(), printer });
 }
-module.exports = { dataDirectory, configPath, load, rememberPrinter, validate };
+function rememberOrigins(allowedOrigins) {
+  save({ ...load(), allowedOrigins });
+}
+module.exports = { dataDirectory, configPath, load, rememberPrinter, rememberOrigins, validate };
+
 

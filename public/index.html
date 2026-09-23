@@ -7,6 +7,7 @@
   <title>Printer Server</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
+  <script src="/sites.js" defer></script>
 </head>
 <body>
   <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -35,6 +36,19 @@
           <summary>Ajustes de conexión</summary>
           <div class="connection-fields"><label for="baud-rate">Velocidad del puerto <span>(baudios)</span></label><input id="baud-rate" type="number" required min="1" max="4000000" step="1" value="19200"><p>Se aplica al conectar otra impresora o al reconectar la actual.</p><button class="button button-secondary" id="reconnect" disabled>Reconectar actual</button></div>
         </details>
+        <details class="sites-panel" id="sites-panel">
+          <summary>Sitios autorizados</summary>
+          <p class="sites-description">Estos sitios pueden imprimir. Solo desde este panel puedes administrar las impresoras y los permisos.</p>
+          <p id="sites-locked" class="sites-description" hidden>La lista está definida por ALLOWED_ORIGINS. Retira esa variable y reinicia para editarla aquí.</p>
+          <form id="site-form">
+            <label for="site-url">URL de tu aplicación</label>
+            <div class="site-add"><input id="site-url" type="url" required maxlength="2048" placeholder="https://ventas.example.com" autocomplete="off" aria-describedby="site-preview"><button class="button button-primary" type="submit">Autorizar</button></div>
+            <p id="site-preview" class="sites-description">Puedes pegar la URL completa; solo se guarda su origen.</p>
+          </form>
+          <div class="sites-list-heading"><span>Permisos de este equipo</span><button id="sites-refresh" class="button button-secondary" type="button">Actualizar</button></div>
+          <ul id="sites-list"></ul>
+          <p id="sites-status" class="sites-description" role="status" aria-live="polite"></p>
+        </details>
       </section>
       <section class="print-column" aria-labelledby="print-title">
         <div class="section-heading"><div><h1 id="print-title">Imprimir texto</h1><p id="print-destination">Selecciona una impresora para continuar.</p></div></div>
@@ -59,4 +73,5 @@
   </div>
 </body>
 </html>
+
 

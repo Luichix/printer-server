@@ -4,6 +4,20 @@ Aplicación local para que sistemas web de ventas e inventario puedan enviar
 impresiones al equipo del usuario. El prototipo actual admite puertos COM y
 tickets de texto ESC/POS en Windows.
 
+## Descargar para Windows
+
+**[Descargas y versiones](https://github.com/Luichix/printer-server/releases)** ·
+[Última versión publicada](https://github.com/Luichix/printer-server/releases/latest)
+
+En los archivos de la versión, elige **setup.exe** para instalar o **portable.zip**
+para extraer y ejecutar. Los archivos «Source code» contienen el código, no la aplicación.
+No necesitas Node.js ni pnpm para utilizar esos paquetes.
+
+Las descargas aparecerán cuando se publique la primera Release. Configurar el
+workflow no publica una versión automáticamente con cada commit.
+
+Para mantener el proyecto: [cómo publicar una versión](docs/GITHUB-RELEASES.md).
+
 ## Empezar
 
 Usar Node con **nvm-windows** (versión en `.nvmrc`) y **pnpm 11.19.0**.
@@ -50,3 +64,6 @@ El ejecutable antiguo en `dist/` no contiene los cambios actuales. Primero se
 validará el hardware y después se definirá y comprobará el empaquetado.
 
 Aplicación de escritorio: consulta [bandeja, configuración y compilación](docs/DESKTOP.md). Código preparado; pendiente de validación manual y nueva compilación.
+
+Distribución Windows: [portable, instalador y versiones](docs/DISTRIBUTION.md).
+

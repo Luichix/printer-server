@@ -101,3 +101,28 @@ Referencias de implementación:
 - https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
 - https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/how-to-associate-a-shortcut-menu-with-a-windows-forms-notifyicon-component
 
+
+## Sitios autorizados desde el panel
+
+En la columna de impresoras, abrir **Sitios autorizados**. Pegar la URL del SaaS
+y pulsar Autorizar. Se guarda solo el origen exacto (protocolo, dominio y puerto),
+sin rutas: autorizar /admin también autoriza las demás páginas del mismo origen.
+No incluye otros subdominios. Se exige HTTPS, excepto HTTP de loopback para desarrollo.
+No admite comodines ni credenciales incluidas en la URL.
+
+Los cambios hechos aquí se persisten en config.json y se aplican inmediatamente,
+sin reiniciar ni recompilar. Los permisos existentes se conservan. Quitar un sitio
+bloquea solicitudes futuras; no cancela trabajos ya aceptados ni elimina sus datos.
+El campo path de impresión no cambia la impresora seleccionada.
+
+GET/POST /settings/sites y POST /settings/sites/remove están reservados al panel local,
+con la misma protección que listar o seleccionar impresoras. La web autorizada
+para imprimir no puede consultar ni modificar la lista de sitios.
+
+Si ALLOWED_ORIGINS está definida en el entorno, la lista se muestra en solo lectura:
+retirar la variable y reiniciar para volver a administrar el archivo desde el panel.
+Los cambios manuales en config.json todavía requieren reinicio.
+
+Esta entrega no añade credenciales, autenticación por usuario/tenant, cancelación de
+cola ni prevención de duplicados. No se ejecutaron pruebas ni se generó un EXE.
+

@@ -13,7 +13,10 @@
     "dev": "node --watch src/server.js",
     "build:exe": "pkg entry.cjs --config package.json --targets node24-win-x64 --output dist/windows/printer-server.exe && node scripts/windows-gui.cjs",
     "test": "node --test",
-    "check": "node --check src/server.js && node --check public/app.js"
+    "check": "node --check src/server.js && node --check public/app.js",
+    "build:portable": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Format Portable",
+    "build:installer": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Format Installer",
+    "build:release": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Format All"
   },
   "pkg": {
     "scripts": [

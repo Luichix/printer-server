@@ -100,3 +100,40 @@ Esto reduce riesgos, no garantiza por sí solo la seguridad de los paquetes.
 
 Referencias: https://github.com/coreybutler/nvm-windows y
 https://github.com/pnpm/pnpm.io/blob/main/docs/supply-chain-security.md.
+
+## Recibos enviados desde el SaaS
+
+La API /print no aplica el límite de cuatro líneas de la interfaz manual.
+Admite hasta 16 KiB de texto, normaliza CRLF y CR a LF y acepta ESC ! n
+como comando de modo de impresión integrado en text. Su parámetro se envía
+como un byte, separado de la codificación UTF-8 del texto. Cuando se utiliza,
+el modo se establece en cero al principio y se restaura a cero al final para
+no dejar la fuente alterada para el siguiente trabajo.
+
+Otros comandos de control se rechazan con un error específico. El corte y
+la gaveta se solicitan mediante cut y openDrawer. Esta compatibilidad no
+implementa todos los comandos ESC/POS ni lenguajes de etiquetas.
+Los acentos siguen dependiendo de la codificación admitida por la impresora.
+
+El SaaS debe leer el JSON de error de la respuesta en lugar de mostrar siempre
+que el servidor está apagado: un HTTP 400 significa que la solicitud llegó
+pero su contenido u opciones no son válidos.
+
+## Administración exclusiva desde el panel local
+
+Los sitios web externos, aunque estén autorizados para imprimir, reciben 403
+al consultar /print/list o modificar /print/select, incluido el preflight.
+Solo el panel de localhost/127.0.0.1 en el puerto configurado puede administrar
+las impresoras. Las solicitudes administrativas sin Origin necesitan evidencia
+del panel local mediante Fetch Metadata o Referer; no basta con omitir Origin.
+
+GET /health devuelve a sitios externos únicamente service y status. No revela
+el puerto, velocidad ni estado de la impresora. POST /print continúa imprimiendo
+en la conexión seleccionada manualmente. Su campo path opcional solo comprueba
+que coincide con ella; no cambia la selección ni abre otro puerto.
+
+Se conserva la reconexión automática de la impresora guardada. El panel no puede
+incluirse en un iframe. Estas restricciones protegen frente a sitios externos en
+navegadores; no autentican software local capaz de falsificar encabezados HTTP.
+
+Se actualizaron los casos de prueba de acceso; no se ejecutaron en esta entrega.

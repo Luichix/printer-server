@@ -1,0 +1,79 @@
+name: Preparar release de Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Obtener el código de la versión
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Comprobar etiqueta y versión
+        run: |
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $env:GITHUB_REF_NAME -ne "v$version") {
+            throw 'La etiqueta debe ser vX.Y.Z y coincidir con version en package.json.'
+          }
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Preparar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+
+      - name: Instalar dependencias fijadas
+        run: pnpm install --frozen-lockfile
+
+      # Inno Setup ya está incluido en windows-2022.
+      # No ejecutar pnpm start, tests ni impresiones en este flujo.
+      - name: Generar portable e instalador
+        run: pnpm build:release
+
+      - name: Crear o completar el borrador de Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          $prefix = "dist/release/PrinterServer-$version-windows-x64"
+          $assets = @("$prefix-portable.zip", "$prefix-portable.zip.sha256", "$prefix-setup.exe", "$prefix-setup.exe.sha256")
+          foreach ($asset in $assets) {
+            if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) { throw "Falta el archivo $asset" }
+          }
+          $releasesJson = & gh api "repos/$env:GH_REPO/releases?per_page=100"
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar Releases.' }
+          $existing = @($releasesJson | ConvertFrom-Json) | Where-Object { $_.tag_name -eq $env:GITHUB_REF_NAME } | Select-Object -First 1
+          if ($existing) {
+            if (-not $existing.draft) { throw 'La versión ya está publicada. Crea otra versión; no se sobrescriben publicaciones.' }
+            & gh release upload $env:GITHUB_REF_NAME @assets --clobber
+          } else {
+            & gh release create $env:GITHUB_REF_NAME @assets --verify-tag --draft --title "Printer Server $version" --notes-file packaging/windows/RELEASE-NOTES.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudieron adjuntar los paquetes a la Release.' }
+          Write-Output 'Borrador preparado. Revisar en Releases y publicar manualmente.'
+
