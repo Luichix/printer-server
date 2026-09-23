@@ -25,7 +25,7 @@
       <span class="server-state" id="server-badge" role="status"><span class="dot"></span><span id="server-label">Conectando…</span></span>
     </header>
     <main>
-      <nav class="view-tabs" aria-label="Secciones"><button type="button" id="show-print" aria-pressed="true" aria-controls="printing-view">Impresión</button><button type="button" id="show-settings" aria-pressed="false" aria-controls="settings-view">Ajustes</button></nav>
+      <nav class="view-tabs" aria-label="Secciones"><button type="button" id="show-print" aria-pressed="true" aria-controls="printing-view">Impresión</button><button type="button" id="show-history" aria-pressed="false" aria-controls="history-view">Historial</button><button type="button" id="show-settings" aria-pressed="false" aria-controls="settings-view">Ajustes</button></nav>
       <div class="notice" id="status" role="status" aria-live="polite" hidden></div>
       <div class="two-columns" id="printing-view">
       <section class="printers-column" aria-labelledby="printers-title">
@@ -49,12 +49,19 @@
           <p class="editor-note">Se envía solo tu texto, sin ticket de prueba ni corte de papel.</p>
         </form>
         <section class="history" aria-labelledby="history-title">
-          <div class="history-heading"><h2 id="history-title">Impresiones locales</h2><button type="button" class="button button-secondary" id="refresh-jobs">Actualizar trabajos</button></div>
+          <div class="history-heading"><h2 id="history-title">Últimas 5 impresiones</h2><button type="button" class="button button-secondary" id="refresh-jobs">Actualizar trabajos</button></div>
           <p class="history-caption">Solo impresiones de este panel. Reimprime en la impresora seleccionada; un envío no confirma la salida en papel.</p>
           <ol id="print-history"><li class="history-empty">Aquí aparecerán los estados de los últimos trabajos.</li></ol>
+          <button type="button" class="button button-secondary" id="view-history">Ver historial completo</button>
         </section>
       </section>
       </div>
+      <section id="history-view" aria-labelledby="full-history-title" hidden>
+        <div class="section-heading"><div><h1 id="full-history-title">Historial local</h1><p id="history-destination">Selecciona una impresora para reimprimir.</p></div><button type="button" class="button button-secondary" id="refresh-history">Actualizar</button></div>
+        <p class="history-caption">Solo impresiones del panel. Las reimpresiones se envían a la impresora seleccionada actualmente.</p>
+        <ol id="full-history" class="history-list"></ol>
+        <nav class="history-pagination" aria-label="Páginas del historial"><button type="button" class="button button-secondary" id="history-prev" disabled>Anterior</button><span id="history-page" role="status" aria-live="polite">Página 1 de 1</span><button type="button" class="button button-secondary" id="history-next" disabled>Siguiente</button></nav>
+      </section>
       <section id="settings-view" aria-label="Ajustes" hidden><h1>Ajustes</h1>        <details class="connection-options" open>
           <summary>Ajustes de conexión</summary>
           <div class="connection-fields"><label for="baud-rate">Velocidad del puerto <span>(baudios)</span></label><input id="baud-rate" type="number" required min="1" max="4000000" step="1" value="19200"><p>Se aplica al conectar otra impresora o al reconectar la actual.</p><button class="button button-secondary" id="reconnect" disabled>Reconectar actual</button></div>

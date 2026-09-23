@@ -5,7 +5,18 @@ module.exports = function createPrintRoutes(
   onPrinterConnected = () => {},
 ) {
   const router = express.Router();
-  router.get('/jobs', (_req, res) => res.json(printer.listJobs()));
+  router.get('/jobs', (req, res) => {
+    const jobs = printer.listJobs();
+    if (req.query.page === undefined && req.query.pageSize === undefined) return res.json(jobs.slice(0, 100));
+    const page = Number(req.query.page ?? 1);
+    const pageSize = Number(req.query.pageSize ?? 10);
+    if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+      return res.status(400).json({ error: 'Página inválida; pageSize debe estar entre 1 y 50.' });
+    }
+    const totalPages = Math.max(1, Math.ceil(jobs.length / pageSize));
+    const currentPage = Math.min(page, totalPages);
+    res.json({ items: jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize), page: currentPage, pageSize, total: jobs.length, totalPages });
+  });
   router.get('/list', async (_req, res, next) => {
     try {
       res.json(await printer.listPorts());

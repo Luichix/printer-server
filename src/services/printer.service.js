@@ -128,7 +128,7 @@ function createPrinterService(
           );
         }
       }),
-    listJobs: () => jobs.filter(job => job.localPanel === true).slice(-100).reverse().map(publicJob),
+    listJobs: () => jobs.filter(job => job.localPanel === true).slice().reverse().map(publicJob),
     async printTicket(
       text,
       {

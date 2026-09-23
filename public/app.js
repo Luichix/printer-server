@@ -3,6 +3,8 @@ const container = byId('printer-cards');
 let selectedPrinter = null;
 let busy = false;
 let online = false;
+let historyPage = 1;
+let historyTotalPages = 1;
 const normalize = text => text.replace(/\r\n?/g, '\n');
 const editor = () => byId('multiline').checked ? byId('print-textarea') : byId('print-input');
 const currentText = () => normalize(editor().value);
@@ -68,6 +70,10 @@ function updateControls() {
   });
   document.querySelectorAll('.reprint-button').forEach(button => { button.disabled = busy || !selectedPrinter || !online; });
   byId('refresh-jobs').disabled = busy;
+  byId('refresh-history').disabled = busy;
+  byId('history-prev').disabled = busy || historyPage <= 1;
+  byId('history-next').disabled = busy || historyPage >= historyTotalPages;
+  byId('history-destination').textContent = selectedPrinter ? 'Destino de reimpresión: ' + selectedPrinter : 'Selecciona una impresora en la pestaña Impresión para reimprimir.';
   byId('refresh').disabled = busy;
   byId('reconnect').disabled = busy || !selectedPrinter || !online;
   byId('baud-rate').disabled = busy;
@@ -224,14 +230,13 @@ byId('paste-print').addEventListener('click', () => action(async () => {
   setEditorText(text);
   await printText(text);
 }));
-async function loadJobs() {
-  const jobs = await request('/print/jobs');
+function renderJobs(target, jobs) {
   const labels = { queued: 'Pendiente', sending: 'Enviando', sent: 'Enviado', failed: 'Fallido', uncertain: 'Resultado incierto: revisa el papel antes de reimprimir' };
-  byId('print-history').replaceChildren();
-  if (!jobs.length) { const empty = document.createElement('li'); empty.textContent = 'Aún no hay trabajos registrados.'; byId('print-history').append(empty); }
+  target.replaceChildren();
+  if (!jobs.length) { const empty = document.createElement('li'); empty.textContent = 'Aún no hay trabajos registrados.'; target.append(empty); }
   for (const job of jobs) {
     const row = document.createElement('li');
-    row.textContent = job.path + ' · ' + (labels[job.status] || job.status) + ' · ' + new Date(job.createdAt).toLocaleString('es') + ' · ' + job.id;
+    row.textContent = job.path + ' · ' + (labels[job.status] || job.status) + ' · ' + new Date(job.createdAt).toLocaleString('es');
     if (typeof job.text === 'string') {
       const content = document.createElement('pre'); content.className = 'history-text';
       content.textContent = job.text; row.append(content);
@@ -243,17 +248,41 @@ async function loadJobs() {
         row.append(button);
       }
     }
-    byId('print-history').append(row);
+    target.append(row);
   }
 }
+async function loadHistoryPage(page = historyPage) {
+  const result = await request('/print/jobs?page=' + page + '&pageSize=10');
+  historyPage = result.page;
+  historyTotalPages = result.totalPages;
+  renderJobs(byId('full-history'), result.items);
+  byId('history-page').textContent = 'Página ' + historyPage + ' de ' + historyTotalPages + ' · ' + result.total + ' impresiones';
+}
+async function loadJobs() {
+  const recent = await request('/print/jobs?page=1&pageSize=5');
+  renderJobs(byId('print-history'), recent.items);
+  if (!byId('history-view').hidden) await loadHistoryPage();
+}
+
 function showView(view) {
   byId('printing-view').hidden = view !== 'print';
   byId('settings-view').hidden = view !== 'settings';
+  byId('history-view').hidden = view !== 'history';
+  byId('show-history').setAttribute('aria-pressed', String(view === 'history'));
   byId('show-print').setAttribute('aria-pressed', String(view === 'print'));
   byId('show-settings').setAttribute('aria-pressed', String(view === 'settings'));
 }
-byId('show-print').addEventListener('click', () => showView('print'));
+byId('show-print').addEventListener('click', () => { showView('print'); action(loadJobs); });
 byId('show-settings').addEventListener('click', () => showView('settings'));
+function openHistory() {
+  showView('history');
+  action(() => loadHistoryPage());
+}
+byId('show-history').addEventListener('click', openHistory);
+byId('view-history').addEventListener('click', openHistory);
+byId('refresh-history').addEventListener('click', () => action(() => loadHistoryPage()));
+byId('history-prev').addEventListener('click', () => action(() => loadHistoryPage(historyPage - 1)));
+byId('history-next').addEventListener('click', () => action(() => loadHistoryPage(historyPage + 1)));
 byId('refresh-jobs').addEventListener('click', () => action(loadJobs));
 action(async () => { await loadPrinters(); await loadJobs(); });
 
