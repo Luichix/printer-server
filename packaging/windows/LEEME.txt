@@ -1,0 +1,48 @@
+PRINTER SERVER - WINDOWS X64
+
+REQUISITOS
+- Windows 10/11 x64 con Windows PowerShell 5.1 y Windows Forms.
+- Controlador de la impresora instalado y puerto COM disponible.
+- Impresora compatible con ESC/POS. No se necesita Node.js ni pnpm.
+- Esta entrega no implementa etiquetas ZPL/TSPL ni impresión por el controlador de Windows.
+
+PORTABLE
+Extrae el ZIP completo en una carpeta local antes de abrir printer-server.exe.
+La versión portable guarda preferencias en el perfil del usuario, no en el USB
+ni junto al ejecutable. No copies datos de otro negocio para instalarla.
+
+INSTALADOR
+Instala para el usuario actual. No requiere administrador para la aplicación;
+el controlador de la impresora puede requerirlo por separado.
+El escritorio y el inicio automático son opciones voluntarias.
+Cierra la versión anterior desde la bandeja antes de instalar o actualizar.
+No actualices mientras hay impresiones en curso.
+
+PRIMER USO
+1. Abre Printer Server. El panel se abre en el navegador.
+2. Selecciona manualmente la impresora y su velocidad.
+3. En Sitios autorizados, agrega la URL HTTPS de tu SaaS.
+4. Permite el acceso a red local en el navegador si lo solicita.
+El SaaS debe estar abierto en el mismo equipo que la impresora.
+
+BANDEJA
+Busca el icono junto al reloj (puede estar entre los iconos ocultos).
+Desde allí puedes abrir el panel, consultar el estado, abrir registros y salir.
+Cerrar la pestaña del navegador no detiene el servicio.
+El inicio automático mantiene la bandeja sin abrir el navegador.
+
+DATOS
+Configuración: %LOCALAPPDATA%\PrinterServer\config.json
+Registros: %LOCALAPPDATA%\PrinterServer\logs
+La actualización y desinstalación conservan esos datos, incluidos los sitios
+autorizados. Reinstalar con el mismo usuario recupera esa configuración.
+Si cambia el propietario del equipo, revisa y revoca los sitios anteriores.
+
+ALCANCE
+No incluye un actualizador automático. Para actualizar, cierra la aplicación
+e instala la nueva versión para el mismo usuario.
+La versión portable e instalada comparten configuración e instancia.
+No se instala un servicio de Windows ni se añaden reglas de firewall.
+Paquete sin firma digital por ahora. Verifica procedencia antes de ejecutarlo;
+no desactives las protecciones de Windows.
+

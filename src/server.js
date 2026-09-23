@@ -1,45 +1,151 @@
-#!/usr/bin/env node
-import { createInterface } from 'node:readline';
-import { createApp } from './app.js';
-import { Store, defaultDataDir, acquireLock } from './services/store.js';
-import { PrinterManager } from './services/printer.service.js';
+const path = require('node:path');
+const { spawn } = require('node:child_process');
+const settings = require('./desktop/settings');
+const { startTray, showError } = require('./desktop/tray');
+const claimInstance = require('./desktop/instance');
+const logsDirectory = path.join(settings.dataDirectory, 'logs');
+const desktop =
+  process.platform === 'win32' &&
+  (Boolean(process.pkg) || process.env.PRINTER_TRAY === 'true');
+let server, instance, tray, printer;
+let stopping = false;
+let failing = false;
+let url;
+let pendingOpen = false;
 
-const port = Number(process.env.PORT || 4000);
-if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT debe ser un puerto válido');
-const directory = defaultDataDir();
-const releaseLock = acquireLock(directory);
-process.on('exit', releaseLock);
-const store = new Store(directory);
-const manager = new PrinterManager(store);
-const app = createApp(manager, { port, allowedOrigins: (process.env.PRINTER_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean) });
-// Listen first: a second instance must not open ports used by the running agent.
-const server = app.listen(port, '127.0.0.1', async () => {
-  console.log(`Panel de impresión: http://127.0.0.1:${port}`);
-  if (process.argv.includes('--desktop')) console.log('PRINTER_SERVER_READY');
-  console.log(`Configuración: ${store.directory}`);
-  await manager.restore();
-});
-server.on('error', error => {
-  console.error(error.code === 'EADDRINUSE' ? `El puerto ${port} ya está en uso. Es posible que el agente ya esté abierto.` : error.message);
-  process.exitCode = 1;
-  control?.close();
-  process.stdin.pause();
-});
-let closing = false;
-let control;
-if (process.argv.includes('--desktop')) {
-  control = createInterface({ input: process.stdin });
-  control.on('line', line => { if (line === 'shutdown') void shutdown(); });
-  // The parent closing/crashing closes this pipe too. Do not leave an orphan agent.
-  control.on('close', () => { void shutdown(); });
+function openPanel() {
+  if (!url || !server?.listening) {
+    pendingOpen = true;
+    return;
+  }
+  require('open')(url).catch((error) =>
+    console.error('No se pudo abrir el panel:', error.message),
+  );
 }
-async function shutdown() {
-  if (closing) return;
-  closing = true;
-  server.close();
-  await manager.shutdown();
-  control?.close();
-  process.stdin.pause();
+async function shutdown(code = 0) {
+  if (stopping) return;
+  stopping = true;
+  console.log('Cerrando Printer Server');
+  const deadline = setTimeout(() => process.exit(code), 5000);
+  tray?.kill();
+  instance?.close();
+  if (server) {
+    await new Promise((resolve) => {
+      server.close(resolve);
+      server.closeIdleConnections();
+    });
+  }
+  if (printer)
+    await printer.close().catch((error) => console.error(error.message));
+  clearTimeout(deadline);
+  process.exit(code);
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+async function fatal(error) {
+  if (failing || stopping) return;
+  failing = true;
+  console.error(error.stack || error.message || error);
+  if (desktop) {
+    const dialog = showError(
+      'Printer Server debe cerrarse.\n\n' +
+        error.message +
+        '\n\nRegistros: ' +
+        logsDirectory,
+    );
+    await new Promise((resolve) => {
+      dialog.once('exit', resolve);
+      dialog.once('error', resolve);
+      setTimeout(resolve, 10000).unref();
+    });
+  }
+  await shutdown(1);
+}
+function trayAction(action) {
+  if (action === 'open') openPanel();
+  else if (action === 'quit') void shutdown();
+  else if (action === 'status') {
+    showError(
+      'Servicio local activo\n' +
+        url +
+        '\nImpresora: ' +
+        (printer.isPrinterOpen() ? 'conectada' : 'sin conexión'),
+    );
+  } else if (action === 'logs') {
+    require('open')(logsDirectory).catch((error) =>
+      console.error(error.message),
+    );
+  } else if (action === 'config') {
+    const editor = spawn('notepad.exe', [settings.configPath], {
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    editor.on('error', (error) =>
+      console.error('No se pudo abrir la configuración:', error.message),
+    );
+  }
+}
+async function main() {
+  instance = await claimInstance(settings.dataDirectory, openPanel);
+  if (!instance) return;
+  require('./desktop/logger')(logsDirectory);
+  const config = settings.load();
+  const effective = settings.validate({
+    ...config,
+    port: process.env.PORT ? Number(process.env.PORT) : config.port,
+    allowedOrigins:
+      process.env.ALLOWED_ORIGINS !== undefined
+        ? process.env.ALLOWED_ORIGINS.split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : config.allowedOrigins,
+  });
+  printer = require('./services/printer.service');
+  const { createApp } = require('./app');
+  url = 'http://localhost:' + effective.port;
+  server = createApp({
+    port: effective.port,
+    allowedOrigins: effective.allowedOrigins,
+    printer,
+    onPrinterConnected: settings.rememberPrinter,
+    onOriginsChanged: settings.rememberOrigins,
+    originsReadOnly: process.env.ALLOWED_ORIGINS !== undefined,
+  }).listen(effective.port, 'localhost');
+  await new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
+  });
+  server.on('error', (error) => void fatal(error));
+  console.log('Servidor de impresión:', url);
+  if (desktop) {
+    tray = await startTray(settings.dataDirectory, trayAction, () => {
+      if (!stopping)
+        void fatal(
+          new Error('La bandeja del sistema se cerró inesperadamente'),
+        );
+    });
+  }
+  if (config.printer) {
+    printer
+      .connectPrinter(config.printer.path, config.printer.baudRate)
+      .then(() => console.log('Impresora restaurada:', config.printer.path))
+      .catch((error) =>
+        console.warn('No se pudo restaurar la impresora:', error.message),
+      );
+  }
+  if (
+    pendingOpen ||
+    (!process.argv.includes('--background') &&
+      (process.env.OPEN_BROWSER !== undefined
+        ? process.env.OPEN_BROWSER !== 'false'
+        : config.openBrowser))
+  )
+    openPanel();
+}
+for (const signal of ['SIGINT', 'SIGTERM'])
+  process.once(signal, () => void shutdown());
+process.once('uncaughtException', (error) => void fatal(error));
+process.once(
+  'unhandledRejection',
+  (error) =>
+    void fatal(error instanceof Error ? error : new Error(String(error))),
+);
+main().catch((error) => void fatal(error));

@@ -1,0 +1,8 @@
+Antes de continuar, cierra Printer Server desde el icono de la bandeja.
+Si lo ejecutas mediante pnpm start, detén también esa instancia.
+
+No actualices durante una impresión. Este instalador no forzará el cierre.
+
+Se instalará para el usuario actual. La configuración y los dominios autorizados
+se conservarán al actualizar y al desinstalar. No se instalan controladores.
+
