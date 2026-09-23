@@ -23,7 +23,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Obtener el código de la versión
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -35,12 +35,13 @@ jobs:
           }
 
       - name: Preparar Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          package-manager-cache: false
 
       - name: Preparar pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 11.19.0
           run_install: false
@@ -76,4 +77,5 @@ jobs:
           }
           if ($LASTEXITCODE -ne 0) { throw 'No se pudieron adjuntar los paquetes a la Release.' }
           Write-Output 'Borrador preparado. Revisar en Releases y publicar manualmente.'
+
 

@@ -49,10 +49,18 @@ try {
   }
   # Cada entrega tiene su propia suma; no mezcla resultados de otras ejecuciones.
   foreach ($artifact in $artifacts) {
-    $hash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
+    # Compatible con Windows PowerShell 5.1 y PowerShell 7 sin autoload de módulos.
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $artifactStream = [System.IO.File]::OpenRead($artifact)
+      try {
+        $hash = [System.BitConverter]::ToString($sha256.ComputeHash($artifactStream)).Replace('-', '').ToLowerInvariant()
+      } finally { $artifactStream.Dispose() }
+    } finally { $sha256.Dispose() }
     ($hash + '  ' + [System.IO.Path]::GetFileName($artifact)) | Set-Content -LiteralPath ($artifact + '.sha256') -Encoding ascii
     Write-Output ('Generado: ' + $artifact)
   }
   Write-Output 'Paquetes generados sin ejecutar la aplicación. Pendientes de validación manual y firma.'
 } finally { Pop-Location }
+
 

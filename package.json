@@ -1,6 +1,6 @@
 {
   "name": "printer-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
@@ -38,3 +38,4 @@
     "@yao-pkg/pkg": "6.22.0"
   }
 }
+
