@@ -28,13 +28,13 @@ module.exports = function createPrintRoutes(
     const { path, baudRate = 19200 } = req.body || {};
     if (
       typeof path !== 'string' ||
-      !/^COM[1-9]\d*$/i.test(path) ||
+      !/^(?:COM[1-9]\d*|USB\d{3,})$/i.test(path) ||
       !Number.isInteger(baudRate) ||
       baudRate < 1 ||
       baudRate > 4000000
     ) {
       return res.status(400).json({
-        error: 'Se requiere un puerto COM válido y baudRate entero positivo',
+        error: 'Se requiere un puerto COM o USB001 válido y baudRate entero positivo',
       });
     }
     try {
@@ -60,11 +60,11 @@ module.exports = function createPrintRoutes(
       (cut !== undefined && typeof cut !== 'boolean') ||
       (openDrawer !== undefined && typeof openDrawer !== 'boolean') ||
       (path !== undefined &&
-        (typeof path !== 'string' || !/^COM[1-9]\d*$/i.test(path)))
+        (typeof path !== 'string' || !/^(?:COM[1-9]\d*|USB\d{3,})$/i.test(path)))
     ) {
       return res.status(400).json({
         error:
-          'Opciones inválidas: cut y openDrawer deben ser booleanos; path debe ser un puerto COM',
+          'Opciones inválidas: cut y openDrawer deben ser booleanos; path debe ser un puerto COM o USB001',
       });
     }
     if (localPanel && (typeof text !== 'string' || text.length > 4000 || text.replace(/\r\n?/g, '\n').split('\n').length > 4 || /[\x00-\x08\x0b-\x1f\x7f]/.test(text))) {

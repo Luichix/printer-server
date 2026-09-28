@@ -76,7 +76,7 @@ function updateControls() {
   byId('history-destination').textContent = selectedPrinter ? 'Destino de reimpresión: ' + selectedPrinter : 'Selecciona una impresora en la pestaña Impresión para reimprimir.';
   byId('refresh').disabled = busy;
   byId('reconnect').disabled = busy || !selectedPrinter || !online;
-  byId('baud-rate').disabled = busy;
+  byId('baud-rate').disabled = busy || /^USB/i.test(selectedPrinter || '');
   byId('multiline').disabled = busy;
   byId('print-input').disabled = busy || byId('multiline').checked;
   byId('print-textarea').disabled = busy || !byId('multiline').checked;
@@ -117,7 +117,7 @@ function emptyState(title, description) {
   container.replaceChildren(empty);
 }
 async function connect(path) {
-  const baudRate = Number(byId('baud-rate').value);
+  const baudRate = /^USB/i.test(path) ? 19200 : Number(byId('baud-rate').value);
   if (!Number.isInteger(baudRate) || baudRate < 1 || baudRate > 4000000) {
     showView('settings');
     byId('baud-rate').closest('details').open = true;
@@ -153,7 +153,7 @@ async function loadPrinters() {
     const printers = await request('/print/list');
     if (!Array.isArray(printers)) throw new Error('No se pudo leer la lista de puertos.');
     if (!printers.length) {
-      emptyState('Conecta tu primera impresora', 'Enciende y conecta una impresora con puerto COM; después pulsa Actualizar.');
+      emptyState('Conecta tu primera impresora', 'Enciende y conecta una impresora con puerto COM o USB instalada en Windows; después pulsa Actualizar.');
       return;
     }
     container.replaceChildren();
@@ -172,7 +172,7 @@ async function loadPrinters() {
       const name = document.createElement('h2');
       name.textContent = printer.path;
       const meta = document.createElement('p');
-      meta.textContent = printer.manufacturer || 'Impresora serial';
+      meta.textContent = printer.name || printer.manufacturer || 'Impresora serial';
       const actions = document.createElement('div');
       actions.className = 'card-actions';
       const select = document.createElement('button');

@@ -26,6 +26,7 @@
       "public/**/*",
       "node_modules/.pnpm/@serialport+bindings-cpp@12.0.1/node_modules/@serialport/bindings-cpp/prebuilds/win32-x64/**/*",
       "src/desktop/tray.ps1",
+      "src/services/windows-usb.ps1",
       "assets/printer-server.ico"
     ]
   },

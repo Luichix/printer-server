@@ -1,4 +1,5 @@
 const { SerialPort } = require('serialport');
+const { WindowsUsbPort } = require('./windows-usb');
 const { createHash, randomUUID } = require('node:crypto');
 const failure = (status, message) =>
   Object.assign(new Error(message), { status });
@@ -9,6 +10,7 @@ function createPrinterService(
     timeoutMs = 10000,
     maxQueue = 50,
     maxJobs = 1000,
+    UsbPort = WindowsUsbPort,
   } = {},
 ) {
   let port = null,
@@ -99,7 +101,8 @@ function createPrinterService(
           throw failure(503, 'Reinicia Printer Server para continuar');
         await disconnect(port);
         port = null;
-        const candidate = new Port({
+        const Connection = /^USB\d{3,}$/i.test(path) ? UsbPort : Port;
+        const candidate = new Connection({
           path,
           baudRate,
           dataBits: 8,
@@ -165,7 +168,7 @@ function createPrinterService(
       if (pending >= maxQueue)
         throw failure(429, 'Cola llena; espera antes de volver a enviar');
       const destination = port;
-      if (path && path !== destination.path)
+      if (path && path.toUpperCase() !== destination.path.toUpperCase())
         throw failure(409, 'La impresora seleccionada cambió');
       if (jobs.length >= maxJobs) {
         const index = jobs.findIndex(
@@ -244,8 +247,8 @@ function createPrinterService(
         port = null;
       });
     },
-    listPorts: async () =>
-      (await Port.list()).map(
+    listPorts: async () => [
+      ...(await Port.list()).map(
         ({ path, manufacturer, serialNumber, vendorId, productId }) => ({
           path,
           manufacturer,
@@ -254,6 +257,8 @@ function createPrinterService(
           productId,
         }),
       ),
+      ...(await UsbPort.list()),
+    ],
   };
   return service;
 }

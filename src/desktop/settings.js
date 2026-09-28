@@ -15,7 +15,7 @@ function validate(value) {
     try { const url = new URL(origin); return !['http:', 'https:'].includes(url.protocol) || url.origin !== origin; }
     catch { return true; }
   })) throw new Error('allowedOrigins debe contener orígenes HTTP/HTTPS exactos, sin rutas');
-  if (config.printer !== null && (typeof config.printer?.path !== 'string' || !/^COM[1-9]\d*$/i.test(config.printer?.path || '') ||
+  if (config.printer !== null && (typeof config.printer?.path !== 'string' || !/^(?:COM[1-9]\d*|USB\d{3,})$/i.test(config.printer?.path || '') ||
       !Number.isInteger(config.printer.baudRate) || config.printer.baudRate < 1 || config.printer.baudRate > 4000000)) {
     throw new Error('Configuración de impresora inválida');
   }

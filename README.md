@@ -66,3 +66,20 @@ validará el hardware y después se definirá y comprobará el empaquetado.
 Aplicación de escritorio: consulta [bandeja, configuración y compilación](docs/DESKTOP.md). Código preparado; pendiente de validación manual y nueva compilación.
 
 Distribución Windows: [portable, instalador y versiones](docs/DISTRIBUTION.md).
+
+### Impresoras USB en Windows
+
+El servidor detecta impresoras instaladas en Windows con puertos USB001, USB002,
+etc. Instala el controlador de la impresora, verifica su puerto en Propiedades de
+impresora > Puertos y pulsa Actualizar en el panel. Selecciona el puerto USB igual
+que un COM. La velocidad en baudios solo se utiliza para COM.
+
+La API admite `{ "path": "USB001" }` en `POST /print/select` y como destino en
+`POST /print`. La seleccion se conserva al reiniciar. Cada puerto USB debe estar
+asignado a una sola cola de impresora para evitar enviar tickets a un destino ambiguo.
+
+Los tickets se envian como RAW por la cola de Windows, conservando los comandos
+ESC/POS de corte y cajon. La impresora debe entender ESC/POS; esto no convierte
+los tickets a formatos de impresoras de oficina. El estado `sent` confirma que
+Windows acepto el trabajo, no que el papel haya salido. Si hay un error durante
+el envio, el resultado queda `uncertain` y no se reintenta automaticamente.
