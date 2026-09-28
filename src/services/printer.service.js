@@ -68,7 +68,7 @@ function createPrinterService(
               code: 'PRINTER_TIMEOUT',
             }),
           ),
-        timeoutMs,
+        target.operationTimeoutMs ?? timeoutMs,
       );
       target.once('error', onError);
       try {
@@ -118,7 +118,8 @@ function createPrinterService(
           port = candidate;
         } catch (error) {
           // An open that completes after timeout must never become an active connection.
-          if (error.code === 'PRINTER_TIMEOUT') blocked = true;
+          if (typeof candidate.cancelOpen === 'function') candidate.cancelOpen();
+          else if (error.code === 'PRINTER_TIMEOUT') blocked = true;
           candidate.once('open', () => {
             void disconnect(candidate).catch(() => {});
           });

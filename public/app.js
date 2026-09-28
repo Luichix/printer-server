@@ -39,7 +39,7 @@ async function request(url, body) {
   try {
     response = await fetch(url, {
       ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(45000),
     });
   } catch (error) {
     selectedPrinter = null;

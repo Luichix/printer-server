@@ -55,3 +55,24 @@ test('API USB: seleccion, persistencia y destino de impresion', async t => {
   assert.equal((await post('/print', { path: 'USB001', text: 'USB' })).status, 200);
   assert.equal((await post('/print/select', { path: 'USB001;exit' })).status, 400);
 });
+
+test('USB: apertura tardia cancelada no bloquea reconexion ni queda activa', async () => {
+  let complete;
+  let attempts = 0;
+  const instances = [];
+  class SlowUsb extends WindowsUsbPort {
+    constructor(options) {
+      super({ ...options, runCommand: () => ++attempts === 1 ? new Promise(resolve => { complete = resolve; }) : Promise.resolve({ name: 'Ticketera' }) });
+      this.operationTimeoutMs = 20;
+      instances.push(this);
+    }
+  }
+  const printer = createPrinterService(Serial, { UsbPort: SlowUsb });
+  await assert.rejects(printer.connectPrinter('USB001'), /Tiempo de espera/);
+  await printer.connectPrinter('USB001');
+  complete({ name: 'Ticketera' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(instances[0].isOpen, false);
+  assert.equal(printer.isPrinterOpen(), true);
+  await printer.close();
+});

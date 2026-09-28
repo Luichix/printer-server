@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 [Console]::InputEncoding = New-Object System.Text.UTF8Encoding
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 try {
